@@ -15,6 +15,8 @@ import (
 	"github.com/op/go-logging"
 	"os"
 	"time"
+	"io/ioutil"
+	"encoding/json"
 )
 
 var log = logging.MustGetLogger("init")
@@ -42,4 +44,20 @@ func LogInit()  {
 	// Set the backends to be used.
 	logging.SetBackend(backend1Leveled, backend2Formatter)
 	log.Infof("init-common-logging at %s", time.Now())
+	conf()
+}
+
+type WxConfig struct {
+	Key string `json:"key"`
+	Name string `json:"name"`
+} 
+
+var (
+	WeConfig *WxConfig
+)
+
+func conf()  {
+	f,_ := ioutil.ReadFile("/mnt/conf/wx.json")
+	json.Unmarshal(f,&WeConfig)
+	log.Infof("read-conf:%s", string(f))
 }
