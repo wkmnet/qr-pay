@@ -18,6 +18,7 @@ import (
 	"github.com/wkmnet/qr-pay/pay"
 	"time"
 	"strings"
+	"github.com/wkmnet/qr-pay/auth"
 )
 
 var log = logging.MustGetLogger("main")
@@ -26,7 +27,8 @@ func main() {
 	common.LogInit()
 	log.Debugf("project start... %s", time.Now())
 	engine := gin.Default()
-	engine.GET("/",func(context *gin.Context) {
+	engine.LoadHTMLGlob("template/*")
+	engine.GET("/go/qr",func(context *gin.Context) {
 		h := context.Request.Header
 		for k,v := range h{
 			log.Infof("key:%s value:%s", k, v)
@@ -42,6 +44,10 @@ func main() {
 		}
 		context.JSON(200,gin.H{"ping":"pong","time":time.Now().Format("2006-01-02 15:04:05")})
 	})
+
+	engine.GET("/go/callback", auth.AuthCallback)
+	engine.GET("/go/static", pay.PayHtml)
+	engine.GET("/go/payback", pay.PayBack)
 	log.Debugf("project start port: %s", "8080")
 	engine.Run()
 }

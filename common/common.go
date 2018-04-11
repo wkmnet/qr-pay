@@ -17,6 +17,9 @@ import (
 	"time"
 	"io/ioutil"
 	"encoding/json"
+	"math/rand"
+	"crypto/md5"
+	"encoding/hex"
 )
 
 var log = logging.MustGetLogger("init")
@@ -47,10 +50,37 @@ func LogInit()  {
 	conf()
 }
 
+
+func RandomString(count int) string{
+	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	bytes := []byte(str)
+	result := []byte{}
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := 0; i < count; i++ {
+		result = append(result, bytes[r.Intn(len(bytes))])
+	}
+	return string(result)
+}
+
+
+
+func Md5(resource string) string{
+	h := md5.New()
+	h.Write([]byte(resource)) // 需要加密的字符串为 123456
+	cipherStr := h.Sum(nil)
+	log.Infof("md5-resource:%s", resource)
+	log.Infof("cipherStr:%s",string(cipherStr))
+	log.Infof("md5-result:%s", hex.EncodeToString(cipherStr))
+	return string(hex.EncodeToString(cipherStr))
+}
+
+
 type WxConfig struct {
-	Key string `json:"key"`
-	Name string `json:"name"`
-} 
+	AppId string `json:"appId"`
+	Secret string `json:"secret"`
+	MerchantId string `json:"merchantId"`
+	PaySecret string `json:"paySecret"`
+}
 
 var (
 	WeConfig *WxConfig
