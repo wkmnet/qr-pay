@@ -69,8 +69,19 @@ func AuthCallback(context *gin.Context) {
 	orderResp,_ := http.Post(orderUrl,"",strings.NewReader(string(req)))
 	orderRespBody,_ := ioutil.ReadAll(orderResp.Body)
 	orderResp.Body.Close()
+	var preOrder UnifiedOrderResp
+	xml.Unmarshal(orderRespBody,&preOrder)
 	log.Infof("unified-order-response:%s",string(orderRespBody))
-	context.JSON(http.StatusOK,gin.H{"ok":true,"openid":accessToken.Openid,"accessToken":accessToken.AccessToken})
+	if preOrder.ReturnCode != "SUCCESS" {
+		context.HTML(http.StatusOK,"error.html",gin.H{"error":preOrder.ReturnCode,"message":preOrder.ReturnCode})
+		return
+	}
+	preOrder.Timestamp = time.Now().Unix()
+	preOrder.Sign = SignUnifiedOrderResp(common.WeConfig.PaySecret,&preOrder)
+	log.Infof("prepay-response:%s",preOrder.PrepayId)
+	context.HTML(http.StatusOK,"pay.html",gin.H{"appId":preOrder.AppId,"timeStamp":preOrder.Timestamp,
+	"nonceStr":preOrder.NonceStr,"package":"prepay_id=" + preOrder.PrepayId,"paySign":preOrder.Sign})
+	//context.JSON(http.StatusOK,gin.H{"ok":true,"openid":accessToken.Openid,"accessToken":accessToken.AccessToken})
 }
 
 func startElement(doc string) (element xml.StartElement) {
@@ -130,4 +141,28 @@ func SignUnifiedOrder(key string,order *UnifiedOrder) string {
 		order.AppId,order.Body,order.DeviceInfo,order.MerchantId,order.NonceStr,
 		order.NotifyUrl,order.Openid,order.OutTradeNo,order.SignType,order.Address,strconv.FormatInt(int64(order.TotalFee),10),order.TradeType,key)
 	return strings.ToLower(common.Md5(res))
+}
+
+
+func SignUnifiedOrderResp(key string,order *UnifiedOrderResp) string {
+	var res = fmt.Sprintf("appId=%s&nonceStr=%s&package=%s&signType=%s&timeStamp=%s",
+		order.AppId,order.NonceStr,"prepay_id=" + order.PrepayId, "MD5", strconv.FormatInt(order.Timestamp,10))
+	return strings.ToLower(common.Md5(res))
+}
+
+type UnifiedOrderResp struct {
+	XMLName xml.Name `xml:"xml"`
+
+	AppId string `xml:"appid"`
+	MerchantId string `xml:"mch_id"`
+	DeviceInfo string `xml:"device_info"`
+	NonceStr string `xml:"nonce_str"`
+	Sign string `xml:"sign"`
+	ReturnCode string `xml:"return_code"`
+	ReturnMessage string `xml:"return_msg"`
+	ResultCode string `xml:"result_code"`
+	PrepayId string `xml:"prepay_id"`
+	SignType string `xml:"sign_type"`
+	TradeType string `xml:"trade_type"`
+	Timestamp int64
 }
