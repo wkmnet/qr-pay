@@ -40,6 +40,7 @@ func Wx(context *gin.Context) {
 func Ali(context *gin.Context)  {
 	//TODO 处理支付宝支付
 	log.Infof("ali-pay %s",time.Now())
+	context.Redirect(http.StatusMovedPermanently,"支付宝二维码支付链接")
 	context.JSON(200,gin.H{"pay":"ali","time":time.Now().Format("2006-01-02 15:04:05")})
 }
 
